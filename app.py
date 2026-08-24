@@ -1,7 +1,4 @@
 import streamlit as st
-import tensorflow as tf
-from tensorflow.keras import Sequential
-from tensorflow.keras.layers import Embedding, Dense, GlobalAveragePooling1D
 import pickle
 import numpy as np
 from numpy.linalg import norm
@@ -13,57 +10,32 @@ st.set_page_config(page_title="Word2Vec - Exploration", page_icon="🎬", layout
 
 st.title("🎬 Exploration des Word Embeddings (Word2Vec)")
 st.write("""
-Cette application permet de visualiser et d'explorer les relations sémantiques et 
+Cette application permet de visualiser et d'explore les relations sémantiques et 
 arithmétiques apprises par un modèle **Word2Vec** entraîné sur des critiques de films.
 """)
 
 # =========================================================
-# 2. PARAMÈTRES DU MODÈLE
-# =========================================================
-vocab_size = 10000
-embedding_dim = 300
-
-# =========================================================
-# 3. CHARGEMENT DU MODÈLE ET DES POIDS
+# 2. CHARGEMENT DE LA MATRICE ET DU TOKENIZER (LÉGER !)
 # =========================================================
 @st.cache_resource
-def build_and_load_model():
-    # Définition de l'architecture du modèle
-    model = Sequential([
-        Embedding(vocab_size, embedding_dim),
-        GlobalAveragePooling1D(),
-        Dense(vocab_size, activation='softmax')
-    ])
-
-    # Construction explicite des couches en mémoire
-    model.build((None, None))
-
-    # Chargement des poids entraînés
-    model.load_weights("word2vec.h5")
-
+def load_data():
+    # Chargement de la matrice d'embeddings sauvegardée
+    embedding_matrix = np.load("embedding_matrix.npy")
+    
     # Chargement du tokenizer
     with open('tokenizer.pkl', 'rb') as f:
         tokenizer = pickle.load(f)
+        
+    return embedding_matrix, tokenizer
 
-    return model, tokenizer
+embedding_matrix, tokenizer = load_data()
+vocab_size = 10000
 
-model, tokenizer = build_and_load_model()
-st.success("✅ Modèle, poids et tokenizer chargés avec succès !")
-
-# =========================================================
-# 4. EXTRACTION DE LA MATRICE D'EMBEDDINGS
-# =========================================================
-@st.cache_resource
-def get_embedding_matrix():
-    # La première couche (index 0) contient la matrice d'embeddings
-    return model.layers[0].get_weights()[0]
-
-embedding_matrix = get_embedding_matrix()
-
+st.success("✅ Données du modèle chargées avec succès (Version ultra-légère) !")
 st.caption(f"📊 Dimension de la matrice d'embeddings : **{embedding_matrix.shape[0]} mots** × **{embedding_matrix.shape[1]} dimensions**")
 
 # =========================================================
-# 5. FONCTIONS DE SIMILITUDE
+# 3. FONCTIONS DE SIMILITUDE
 # =========================================================
 def cosine_similarity(vec_a, vec_b):
     """Calcule la similarité cosinus entre deux vecteurs."""
@@ -96,7 +68,6 @@ def print_closest(word, top_n=10):
             sim = cosine_similarity(vec, embedding_matrix[idx])
             similarities.append((w, sim))
 
-    # Tri décroissant selon la similarité
     similarities.sort(key=lambda x: x[1], reverse=True)
     closest = similarities[:top_n]
 
@@ -104,7 +75,6 @@ def print_closest(word, top_n=10):
 
     for rank, (w, sim) in enumerate(closest, 1):
         st.write(f"**{rank}.** {w}")
-        # La valeur de similarité doit être bornée entre 0.0 et 1.0 pour st.progress
         progress_val = max(0.0, min(1.0, sim))
         st.progress(progress_val)
         st.caption(f"Similarité cosinus : **{sim:.4f}**")
@@ -116,7 +86,6 @@ def compare(word_a, word_b, word_c, top_n=5):
     vec_b = get_word_vector(word_b)
     vec_c = get_word_vector(word_c)
 
-    # Vérification de la présence des mots dans le vocabulaire
     missing = []
     if vec_a is None: missing.append(word_a)
     if vec_b is None: missing.append(word_b)
@@ -126,10 +95,8 @@ def compare(word_a, word_b, word_c, top_n=5):
         st.error(f"⚠️ Mot(s) absent(s) du vocabulaire : **{', '.join(missing)}**")
         return None
 
-    # Calcul arithmétique sur les vecteurs
     target_vector = vec_a - vec_b + vec_c
 
-    # Recherche des mots les plus proches en excluant les mots de départ
     exclude_words = {word_a.lower().strip(), word_b.lower().strip(), word_c.lower().strip()}
     similarities = []
 
@@ -142,7 +109,7 @@ def compare(word_a, word_b, word_c, top_n=5):
     return similarities[:top_n]
 
 # =========================================================
-# 6. WIDGETS : RECHERCHE DE MOTS SIMILAIRES
+# 4. WIDGETS : RECHERCHE DE MOTS SIMILAIRES
 # =========================================================
 st.header("🎯 1. Recherche de mots similaires")
 
@@ -161,7 +128,6 @@ with col_input2:
         options=["-- Sélectionner --"] + example_words
     )
 
-# Détermination du mot à chercher
 word_to_search = user_word.strip() if user_word.strip() else (selected_example if selected_example != "-- Sélectionner --" else "")
 
 if st.button("🔍 Afficher les 10 mots les plus proches"):
@@ -171,7 +137,7 @@ if st.button("🔍 Afficher les 10 mots les plus proches"):
         st.info("👆 Veuillez saisir un mot ou en choisir un dans la liste déroulante.")
 
 # =========================================================
-# 7. WIDGETS : ARITHMÉTIQUE SÉMANTIQUE (ANALOGIES)
+# 5. WIDGETS : ARITHMÉTIQUE SÉMANTIQUE (ANALOGIES)
 # =========================================================
 st.divider()
 st.header("🧮 2. Propriétés sémantiques et arithmétiques")
