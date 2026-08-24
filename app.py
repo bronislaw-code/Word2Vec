@@ -10,25 +10,25 @@ st.set_page_config(page_title="Word2Vec - Exploration", page_icon="🎬", layout
 
 st.title("🎬 Exploration des Word Embeddings (Word2Vec)")
 st.write("""
-Cette application permet de visualiser et d'explore les relations sémantiques et 
+Cette application permet de visualiser et d'explorer les relations sémantiques et 
 arithmétiques apprises par un modèle **Word2Vec** entraîné sur des critiques de films.
 """)
 
 # =========================================================
-# 2. CHARGEMENT DE LA MATRICE ET DU TOKENIZER (LÉGER !)
+# 2. CHARGEMENT DE LA MATRICE ET DU DICTIONNAIRE (SANS TENSORFLOW !)
 # =========================================================
 @st.cache_resource
 def load_data():
     # Chargement de la matrice d'embeddings sauvegardée
     embedding_matrix = np.load("embedding_matrix.npy")
     
-    # Chargement du tokenizer
-    with open('tokenizer.pkl', 'rb') as f:
-        tokenizer = pickle.load(f)
+    # Chargement du dictionnaire de mots (simple dict Python)
+    with open('word_index.pkl', 'rb') as f:
+        word_index = pickle.load(f)
         
-    return embedding_matrix, tokenizer
+    return embedding_matrix, word_index
 
-embedding_matrix, tokenizer = load_data()
+embedding_matrix, word_index = load_data()
 vocab_size = 10000
 
 st.success("✅ Données du modèle chargées avec succès (Version ultra-légère) !")
@@ -49,8 +49,8 @@ def cosine_similarity(vec_a, vec_b):
 def get_word_vector(word):
     """Retourne le vecteur d'embedding pour un mot donné."""
     word = word.lower().strip()
-    if word in tokenizer.word_index:
-        idx = tokenizer.word_index[word]
+    if word in word_index:
+        idx = word_index[word]
         if idx < vocab_size:
             return embedding_matrix[idx]
     return None
@@ -63,7 +63,7 @@ def print_closest(word, top_n=10):
         return
 
     similarities = []
-    for w, idx in tokenizer.word_index.items():
+    for w, idx in word_index.items():
         if idx < vocab_size and w != word.lower().strip():
             sim = cosine_similarity(vec, embedding_matrix[idx])
             similarities.append((w, sim))
@@ -100,7 +100,7 @@ def compare(word_a, word_b, word_c, top_n=5):
     exclude_words = {word_a.lower().strip(), word_b.lower().strip(), word_c.lower().strip()}
     similarities = []
 
-    for w, idx in tokenizer.word_index.items():
+    for w, idx in word_index.items():
         if idx < vocab_size and w not in exclude_words:
             sim = cosine_similarity(target_vector, embedding_matrix[idx])
             similarities.append((w, sim))
