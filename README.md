@@ -6,7 +6,7 @@ Entraînement d'un modèle Word2Vec sur 50 000 critiques de films pour capturer 
 ### 🌐 Démo en direct
 Cliquez sur le badge ci-dessous pour tester l'application Streamlit :
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://TWOJ-LINK-STREAMLIT.streamlit.app)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://word2vec-word-movies-bronislaw.streamlit.app)
 
 ### 🛠️ Fonctionnalités
 - Recherche des 10 mots les plus proches (Similarité Cosinus).
